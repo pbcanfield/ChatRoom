@@ -4,10 +4,8 @@
 
 int main()
 {
+    ChatRoomClient client("users.txt");
+    std::cout << client.login("Pete","test") << std::endl;
 
-    ChatRoomClient test1;
-    ChatRoomServer test2;
-    
-    std::cout << "Hello World" << std::endl;
     return 0;
 }

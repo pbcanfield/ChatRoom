@@ -216,6 +216,11 @@ void ChatRoomClient::sendMessage(std::string message) {
 
 void ChatRoomClient::logout()
 {
+    if(!this->loggedIn) {
+        std::cout << "Denied. Please login first." << std::endl;
+        return;
+    }
+    
     this -> loggedIn = false;
     std::string toSend = "ext";
     this->sendData(toSend);

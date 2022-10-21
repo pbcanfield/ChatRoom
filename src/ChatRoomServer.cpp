@@ -150,6 +150,7 @@ bool ChatRoomServer::createNewUser(User user) {
         if(!userExists) {
             //Now write to the file.
             std::ofstream file(this->userFileName, std::ios::out | std::ios::app);
+            file << '\n';
 
             if(file.is_open()){
                 file << user.UID << std::endl;

@@ -188,8 +188,10 @@ void ChatRoomServer::parseCommand(SOCKET clientSocket, std::string command) {
         std::string uid,password;
         this->parseSpace(payload, &uid, &password);
 
-        if(this->login(uid, password))
+        if(this->login(uid, password)) {
+            std::cout << uid + " login." << std::endl;
             this->sendData(clientSocket, "login confirmed");
+        }
         else
             this->sendData(clientSocket, "Denied. User name or password incorrect.");
     }
@@ -197,15 +199,20 @@ void ChatRoomServer::parseCommand(SOCKET clientSocket, std::string command) {
         std::string uid, password;
         this->parseSpace(payload,&uid,&password);
 
-        if(this->createNewUser({uid,password}))
+        if(this->createNewUser({uid,password})) {
+            std::cout << "New user account created." << std::endl;
             this->sendData(clientSocket, "New user account created. Please login.");
+        }
         else
             this->sendData(clientSocket, "Denied. User account already exists.");
     }
     else if (code == "sen") {
-        this -> sendData(clientSocket, (this->loggedIn) + ": " + payload);
+        std::string toSend = (this->loggedIn) + ": " + payload;
+        std::cout << toSend << std::endl;
+        this -> sendData(clientSocket, toSend);
     }
     else if (code == "ext") {
+        std::cout << (this->loggedIn) + " logout." << std::endl;
         this -> sendData(clientSocket, (this->loggedIn) + " left.");
         this -> loggedIn = "";
     }

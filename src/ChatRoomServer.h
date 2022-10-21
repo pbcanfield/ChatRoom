@@ -20,10 +20,7 @@ class ChatRoomServer {
         ~ChatRoomServer();
 
         void serverListen();
-
         
-        
-
     private:
         void receiveData(SOCKET);
         void sendData(SOCKET, std::string);

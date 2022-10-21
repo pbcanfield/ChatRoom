@@ -96,12 +96,7 @@ void ChatRoomClient::parseCommand(std::string command) {
         this->parseSpace(inputToken,&uid,&password);
 
         if(uid != "" && password != "") {
-            if(this -> login(uid, password)) {
-                std::cout << "login confirmed" << std::endl;
-            }
-            else {
-                std::cout << "Denied. Please login first." << std::endl;
-            }
+            this->login(uid,password);
         } 
         else {
             std::cout << "\"login\" command not formatted correctly." << std::endl;
@@ -112,20 +107,13 @@ void ChatRoomClient::parseCommand(std::string command) {
         std::string uid, password;
         
         this->parseSpace(inputToken,&uid,&password);
-        std::cout << uid << ", " << password << std::endl;
 
-        if(uid != "" && password != "") {
-            if(this -> createNewUser({uid, password})) {
-                std::cout << "New user account created. Please login." << std::endl;
-            }
-        } 
-        else {
-            std::cout << "\"newuser\" command not formatted correctly." << std::endl;
-        }
+        if(uid != "" && password != "") 
+            this -> createNewUser({uid, password});
 
     } 
     else if (commandToken == "send") {
-        this -> sendData(inputToken);
+        this -> sendMessage(inputToken);
     }
     else if (commandToken == "logout") {
         this->logout();
@@ -133,55 +121,6 @@ void ChatRoomClient::parseCommand(std::string command) {
 
 }
 
-bool ChatRoomClient::createNewUser(User user) {
-    bool completed = false;
-    
-    //Check that the username and passwords are the correct lengths.
-    if ((3 <= user.UID.size() && user.UID.size() <= 32) &&
-        (4 <= user.password.size() && user.password.size() <= 8)) {
-
-        //Check that the user doesnt already exist.
-        bool userExists = false;
-        for(User existingUser : this->users) {
-            if(existingUser.UID == user.UID) {
-                userExists = true;
-                std::cout << "Denied. User account already exists." << std::endl;
-                break;
-            }
-        }
-
-        if(!userExists) {
-            //Now write to the file.
-            std::ofstream file(this->userFileName, std::ios::out | std::ios::app);
-
-            if(file.is_open()){
-                file << user.UID << std::endl;
-                file << user.password << std::endl;
-
-                this->users.push_back(user);
-
-                file.close();
-                completed = true;
-            }
-        }
-    }
-
-    return completed;
-}
-
-bool ChatRoomClient::login(std::string UID, std::string password) {
-    bool login = false;
-    for(User user : this->users) {
-        if(user.UID == UID && user.password == password) {
-            login = true;
-            break;
-        }
-    }
-
-    this->loggedInUser = UID;
-    this->loggedIn = login;
-    return login;
-}
 
 
 void ChatRoomClient::parseSpace(std::string input, std::string * firstToken, std::string * secondToken) {
@@ -200,6 +139,8 @@ void ChatRoomClient::parseSpace(std::string input, std::string * firstToken, std
 }
 
 void ChatRoomClient::sendData(std::string message) {
+    
+    
     char msgBuff[BUFF_LEN];
     strcpy(msgBuff, message.c_str());
 
@@ -209,6 +150,76 @@ void ChatRoomClient::sendData(std::string message) {
         closesocket(this -> connectSocket);
         WSACleanup();
     }
+}
 
-    std::cout << "Bytes Sent: " <<  iResult << std::endl;
+std::string ChatRoomClient::awaitResponse() {
+    char recBuff[BUFF_LEN];
+    
+    int iRecieveResult;
+    std::string result = "";
+
+    // Receive data until the server closes the connection
+    do {
+        iRecieveResult = recv(this -> connectSocket, recBuff, BUFF_LEN, 0);
+        if (iRecieveResult > 0) {
+            result = recBuff;
+            break;
+        }
+        
+    } while (iRecieveResult > 0);
+
+    return result;
+}
+
+void ChatRoomClient::login(std::string UID, std::string password) {
+    //Send the data with the type prefix.
+    std::string toSend = "lup" + UID + ' ' + password;
+    this -> sendData(toSend);
+
+    std::string response = this->awaitResponse();
+
+    if(response == "login confirmed") 
+        this -> loggedIn = true;
+    else 
+        this -> loggedIn = false;
+
+    std::cout << response << std::endl;
+}
+
+void ChatRoomClient::createNewUser(User user) {
+    //Send the data with the type prefix.
+    std::string toSend = "nup" + user.UID + ' ' + user.password;
+    this -> sendData(toSend);
+
+    std::string response = this->awaitResponse();
+
+    if(response == "New user account created. Please login.") 
+        this -> loggedIn = true;
+    else 
+        this -> loggedIn = false;
+
+    std::cout << response << std::endl;
+}
+
+void ChatRoomClient::sendMessage(std::string message) {
+    if(!this->loggedIn) {
+        std::cout << "Denied. Please login first." << std::endl;
+        return;
+    }
+    
+    std::string toSend = "sen" + message;
+    this->sendData(toSend);
+    
+    std::string response = this->awaitResponse();
+    std::cout << response << std::endl;
+}
+
+void ChatRoomClient::logout()
+{
+    this -> loggedIn = false;
+    std::string toSend = "ext";
+    this->sendData(toSend);
+    
+    std::string response = this->awaitResponse();
+    std::cout << response << std::endl;
 }

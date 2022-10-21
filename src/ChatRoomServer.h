@@ -1,6 +1,7 @@
 #ifndef PORT
 #define PORT "4966"
-#define BUFF_LEN 256
+//The maximum message size is 256 (+3 for message type metadata.)
+#define BUFF_LEN 259
 #define _WIN32_WINNT 0x501
 
 #include <string>
@@ -19,11 +20,15 @@ class ChatRoomServer {
         ~ChatRoomServer();
 
         void serverListen();
+
+        
         
 
     private:
-        void receiveData(SOCKET clientSocket);
-        void shutdownSocket(SOCKET clientSocket);
+        void receiveData(SOCKET);
+        void sendData(SOCKET, std::string);
+        void shutdownSocket(SOCKET);
+        
 
         WSADATA * wsaData;
         bool initialized;
@@ -31,8 +36,15 @@ class ChatRoomServer {
         
         SOCKET listenSocket;
         
+        bool createNewUser(User);
+        bool login(std::string, std::string);
+
+        std::string loggedIn;
         std::string userFileName;
         std::vector<User> users;
+
+        void parseCommand(SOCKET, std::string);
+        static void parseSpace(std::string, std::string*, std::string*);
 
 };
 

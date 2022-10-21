@@ -101,20 +101,129 @@ void ChatRoomServer::serverListen() {
 
 void ChatRoomServer::receiveData(SOCKET clientSocket) {
     char recBuff[BUFF_LEN];
-    int iRecieveResult, ISendResult;
+    int iRecieveResult;
 
     //Receive data until the connection is terminated.
     do {
         iRecieveResult = recv(clientSocket, recBuff, BUFF_LEN, 0);
         if (iRecieveResult > 0) {
-            std::cout << "Buffer: " << recBuff << std::endl;
+            std::string message = recBuff;
+            this->parseCommand(clientSocket, message);   
         }
-
-
     } while (iRecieveResult > 0);
+}
+
+void ChatRoomServer::sendData(SOCKET clientSocket, std::string message) {
+    char msgBuff[BUFF_LEN];
+
+    strcpy(msgBuff, message.c_str());
+
+    int iSendResult = send(clientSocket, msgBuff, BUFF_LEN, 0);
+    if (iSendResult == SOCKET_ERROR) {
+        std::cout << "send failed: " <<  WSAGetLastError() << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
+    }
 }
 
 void ChatRoomServer::shutdownSocket(SOCKET clientSocket) {
     closesocket(clientSocket);
     WSACleanup();
+}
+
+bool ChatRoomServer::createNewUser(User user) {
+    bool completed = false;
+    
+    //Check that the username and passwords are the correct lengths.
+    if ((3 <= user.UID.size() && user.UID.size() <= 32) &&
+        (4 <= user.password.size() && user.password.size() <= 8)) {
+
+        //Check that the user doesnt already exist.
+        bool userExists = false;
+        for(User existingUser : this->users) {
+            if(existingUser.UID == user.UID) {
+                userExists = true;
+                break;
+            }
+        }
+
+        if(!userExists) {
+            //Now write to the file.
+            std::ofstream file(this->userFileName, std::ios::out | std::ios::app);
+
+            if(file.is_open()){
+                file << user.UID << std::endl;
+                file << user.password << std::endl;
+
+                this->users.push_back(user);
+
+                file.close();
+                completed = true;
+            }
+        }
+    }
+
+    return completed;
+}
+
+bool ChatRoomServer::login(std::string UID, std::string password) {
+    bool login = false;
+    for(User user : this->users) {
+        if(user.UID == UID && user.password == password) {
+            login = true;
+            this->loggedIn = UID;
+            break;
+        }
+    }
+
+    return login;
+}
+
+void ChatRoomServer::parseCommand(SOCKET clientSocket, std::string command) {
+    std::string code = command.substr(0,3);
+    std::string payload = command.substr(3,command.size());
+    
+    if(code == "lup")
+    {
+        std::string uid,password;
+        this->parseSpace(payload, &uid, &password);
+
+        if(this->login(uid, password))
+            this->sendData(clientSocket, "login confirmed");
+        else
+            this->sendData(clientSocket, "Denied. User name or password incorrect.");
+    }
+    else if (code == "nup") {
+        std::string uid, password;
+        this->parseSpace(payload,&uid,&password);
+
+        if(this->createNewUser({uid,password}))
+            this->sendData(clientSocket, "New user account created. Please login.");
+        else
+            this->sendData(clientSocket, "Denied. User account already exists.");
+    }
+    else if (code == "sen") {
+        this -> sendData(clientSocket, (this->loggedIn) + ": " + payload);
+    }
+    else if (code == "ext") {
+        this -> sendData(clientSocket, (this->loggedIn) + " left.");
+        this -> loggedIn = "";
+    }
+
+
+}
+
+void ChatRoomServer::parseSpace(std::string input, std::string * firstToken, std::string * secondToken) {
+    std::size_t firstSpace = input.find(' ');
+
+    if (firstSpace == std::string::npos) {
+        *firstToken = input;
+        *secondToken = "";
+    }
+    else {
+        std::string first, second;
+        *firstToken = input.substr(0,firstSpace);
+        *secondToken = input.substr(firstSpace+1,input.size());
+    }
+    
 }

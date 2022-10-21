@@ -1,7 +1,8 @@
 #ifndef PORT
 #define HOST_IP "127.0.0.1"
 #define PORT "4966"
-#define BUFF_LEN 256
+//The maximum message size is 256 (+3 for message type metadata.)
+#define BUFF_LEN 259
 #define _WIN32_WINNT 0x501
 
 #include <string>
@@ -23,21 +24,23 @@ class ChatRoomClient {
         void parseCommand(std::string);
 
         //Writes a new user to a file with the given filename.
-        bool createNewUser(User);
+        void createNewUser(User);
+
+        //Sends a message to the server if logged in.
+        void sendMessage(std::string);
 
         //Checks if there is a username and password combo that matches the given info.
-        bool login(std::string, std::string);
-        void logout() {this->loggedIn = false; }
-        bool getState() {return this->loggedIn; }
-
+        void login(std::string, std::string);
+        void logout();
     private:
         WSADATA * wsaData;
         bool initialized;
         addrinfo * result;
 
         SOCKET connectSocket;
-
-        void sendData(std::string);
+void sendData(std::string);
+        
+        std::string awaitResponse();
 
         static void parseSpace(std::string, std::string*, std::string*);
 

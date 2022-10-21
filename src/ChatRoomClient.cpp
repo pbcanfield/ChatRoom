@@ -125,7 +125,7 @@ void ChatRoomClient::parseCommand(std::string command) {
 
     } 
     else if (commandToken == "send") {
-
+        this -> sendData(inputToken);
     }
     else if (commandToken == "logout") {
         this->logout();

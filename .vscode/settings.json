@@ -45,5 +45,12 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "c:\\Users\\miste\\Desktop\\ChatRoom",
+            "binaryPath": "c:\\Users\\miste\\Desktop\\ChatRoom\\ChatRoom.exe",
+            "binaryArgs": []
+        }
+    ]
 }
